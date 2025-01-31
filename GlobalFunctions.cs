@@ -23,56 +23,29 @@ namespace CT_Export
 {
     class GlobalFunctions
     {
-        string RPTPath ;
+        
 
         #region PDFExport
         public static void AutoVatRecon(SAPbobsCOM.Company oCompany, string table)
         {
-            string RPTPath;
-            string BasePath = ConfigurationManager.AppSettings["BasePath"];
+            
             SAPbobsCOM.Recordset oRecordset = (SAPbobsCOM.Recordset)oCompany.GetBusinessObject(SAPbobsCOM.BoObjectTypes.BoRecordset);
             string query = "";
             if (oCompany.DbServerType == BoDataServerTypes.dst_HANADB)
             {
-                query = "SELECT \"DocEntry\", \"CardCode\" FROM " + table + " WHERE ";
+                query = "Select * from ORCT where cast(ifnull(\"U_ext_entry\",'') as varchar(254))='Y' \r\nand cast(\"U_recondata\" as varchar(254)) != ''  \r\nand cast(ifnull(\"U_recon_num\",'') as varchar(254)) = ''";
             }
             else
             {
-                query = "SELECT top 1 \"DocEntry\" , \"CardCode\" FROM " + table + " WHERE isnull(U_Drive_Upload_Status,'') = '' ";
+                query = "Select * from ORCT where cast(ifnull(\"U_ext_entry\",'') as varchar(254))='Y' \r\nand cast(\"U_recondata\" as varchar(254)) != ''  \r\nand cast(ifnull(\"U_recon_num\",'') as varchar(254)) = ''";
+
             }
 
             oRecordset.DoQuery(query);
             
             if (oRecordset.RecordCount != 0)
             {
-                SAPbobsCOM.Recordset oRecordset1 = (SAPbobsCOM.Recordset)oCompany.GetBusinessObject(SAPbobsCOM.BoObjectTypes.BoRecordset);
-                string query1= "SELECT U_Layout_Path FROM \"@CT_ExportConfigs\"";
-                oRecordset1.DoQuery(query1);
-
-                RPTPath = oRecordset1.Fields.Item("U_Layout_Path").Value;
-                CrystalDecisions.CrystalReports.Engine.ReportDocument rpt = new CrystalDecisions.CrystalReports.Engine.ReportDocument();
-                rpt.Load(RPTPath + "\\AR Sales Order (Item) - CR (GB).rpt");
-
-                for (int i = 0; i < oRecordset.RecordCount; i++)
-                {
-                    rpt.SetParameterValue("DocKey@", oRecordset.Fields.Item("DocEntry").Value);
-                    rpt.SetParameterValue("ObjectId@","17");
-                  
-          
-                    string pdfFileName = BasePath + ConfigurationManager.AppSettings["SOExportPath"] + "\\AR Sales Order (Item) - CR (GB)" + "_" + oRecordset.Fields.Item("CardCode").Value +  ".pdf";
-                   
-                    rpt.ExportToDisk(CrystalDecisions.Shared.ExportFormatType.PortableDocFormat, pdfFileName);
-
-                    oRecordset.MoveNext();
-                }
-                if (rpt != null)
-                {
-                    rpt.Dispose();
-                    rpt = null;
-                }
                 
-                Log.Information("Sales Order PDF File Export successfully", 1, "Ok", "", "");
-                Marshal.ReleaseComObject(oRecordset1);
 
             }
         }

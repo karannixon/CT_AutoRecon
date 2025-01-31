@@ -58,7 +58,7 @@ namespace CT_Export
             {
                 if (ret == 0 && ConfigurationManager.AppSettings["SwitchUserDefined"] == "1")
                 {
-                    GlobalFunctions.CustomizationTools(oCompany);
+                   // GlobalFunctions.CustomizationTools(oCompany);
 
                 }
 
@@ -76,11 +76,11 @@ namespace CT_Export
 
             #region Auto Vat Recon
 
-            Log.Information("=================== PDF Export STARTED================");
+            Log.Information("=================== Auto Reconcilation STARTED================");
 
             try
             {
-                if (ret == 0 && ConfigurationManager.AppSettings["SwitchSO"] == "1")
+                if (ret == 0 )
                 {
                     GlobalFunctions.AutoVatRecon(oCompany,"ORDR");
 
@@ -106,7 +106,7 @@ namespace CT_Export
             {
                 Log.Information("Starting to connect SAP company: ");
 
-                int ret = 0;
+                int ret =-1 ;
                 oCompany.CompanyDB = ConfigurationManager.AppSettings["CompanyDB"]; 
                 oCompany.DbUserName = ConfigurationManager.AppSettings["DbUserName"];
                 oCompany.DbPassword = ConfigurationManager.AppSettings["DbPassword"];
@@ -148,7 +148,7 @@ namespace CT_Export
                 }
                 if (ret == 0)
                 {
-                    Log.Information("Company connected! " + oCompany.CompanyName + " " + oCompany.UserName);
+                   // Log.Information("Company connected! " + oCompany.CompanyName + " " + oCompany.UserName);
                 }
                 else
                 {
