@@ -82,7 +82,7 @@ namespace CT_Export
             {
                 if (ret == 0 )
                 {
-                    GlobalFunctions.AutoVatRecon(oCompany,"ORDR");
+                    GlobalFunctions.AutoPostRecon(oCompany);
 
                 }
 
@@ -94,7 +94,31 @@ namespace CT_Export
             }
 
 
-            Log.Information("=================== CUSTOMIZATION TOOLS ENDED================");
+            Log.Information("=================== Auto Reconcilation ENDED================");
+
+            #endregion
+
+            #region Auto Vat Recon
+
+            Log.Information("=================== Auto Balance Adjustment STARTED================");
+
+            try
+            {
+                if (ret == 0)
+                {
+                    GlobalFunctions.AutoBalAdjust(oCompany);
+
+                }
+
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex.Message);
+
+            }
+
+
+            Log.Information("=================== Auto Balance Adjustment ENDED================");
 
             #endregion
 
