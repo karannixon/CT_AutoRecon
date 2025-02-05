@@ -274,7 +274,7 @@ namespace CT_Export
                         newPay.TaxDate = new DateTime(2024, 12, 20); 
                         newPay.DocType = BoRcptTypes.rCustomer;
                         newPay.Remarks = "Auto Adjustment Posting";
-                        newPay.CashAccount = "_SYS00000001014";
+                        newPay.CashAccount = "_SYS00000000492";
                         newPay.CashSum = Convert.ToDouble(oRecordset.Fields.Item("Balance").Value.ToString()) >0 ? Convert.ToDouble(oRecordset.Fields.Item("Balance").Value.ToString()) : Convert.ToDouble(oRecordset.Fields.Item("Balance").Value.ToString()) *(-1);
                         oCompany.StartTransaction();
                         int ret = newPay.Add();
