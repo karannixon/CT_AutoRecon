@@ -27,6 +27,86 @@ namespace CT_Export
     class GlobalFunctions
     {
 
+        #region AutoCancelReconcilation
+        public static void AutoCancelRecon(SAPbobsCOM.Company oCompany)
+        {
+
+            SAPbobsCOM.Recordset oRecordset = (SAPbobsCOM.Recordset)oCompany.GetBusinessObject(SAPbobsCOM.BoObjectTypes.BoRecordset);
+            string query = "";
+            if (oCompany.DbServerType == BoDataServerTypes.dst_HANADB)
+            {
+                query = "select \r\n*\r\n,(select \"U_recon_num\" from ORCT where \"DocEntry\"=T0.\"DocEntry\") as \"ReconNum\"\r\n from \"ReconCancellations\" T0 where T0.\"CancellationAvailable\"='Y'";
+            }
+            else
+            {
+                query = "select \r\n*\r\n,(select \"U_recon_num\" from ORCT where \"DocEntry\"=T0.\"DocEntry\") as \"ReconNum\"\r\n from \"ReconCancellations\" T0 where T0.\"CancellationAvailable\"='Y'";
+
+            }
+
+            oRecordset.DoQuery(query);
+
+            if (oRecordset.RecordCount != 0)
+            {
+                Log.Information("Records Found for Reconcilation Cancellation!");
+                for (int i = 0; i < oRecordset.RecordCount; i++)
+                {
+                    string errorMessage = "";
+                    string reconNum = "";
+                    try
+                    {
+                        Log.Information($"Reconcilation cancellation started for Incoming Payment {oRecordset.Fields.Item("DocEntry").Value.ToString()} and Reconciliation Num : {oRecordset.Fields.Item("ReconNum").Value.ToString()}");
+                        InternalReconciliationsService service = (InternalReconciliationsService)oCompany.GetCompanyService().GetBusinessService(ServiceTypes.InternalReconciliationsService);
+                        InternalReconciliationParams reconciliationParams = (InternalReconciliationParams)service.GetDataInterface(InternalReconciliationsServiceDataInterfaces.irsInternalReconciliationParams);
+
+                        reconciliationParams.ReconNum = Convert.ToInt32(oRecordset.Fields.Item("ReconNum").Value.ToString()); ;
+                        service.Cancel(reconciliationParams);
+                        Log.Information($"Reconciliation cancellation successfull for the document {oRecordset.Fields.Item("DocEntry").Value.ToString()} internal recon number is {reconNum}");
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Error($"Error in Reconciliation {ex.Message}");
+                        errorMessage = ex.Message;
+                    }
+                    finally
+                    {
+                        SAPbobsCOM.Payments PayUpdate = (SAPbobsCOM.Payments)oCompany.GetBusinessObject(SAPbobsCOM.BoObjectTypes.oIncomingPayments);
+                        try
+                        {
+                            if (PayUpdate.GetByKey(Convert.ToInt32(oRecordset.Fields.Item("DocEntry").Value.ToString())))
+                            {
+                                PayUpdate.UserFields.Fields.Item("U_recon_num").Value = "";
+                                PayUpdate.UserFields.Fields.Item("U_recon_error").Value = errorMessage;
+
+                                oCompany.StartTransaction();
+                                int updateVal = PayUpdate.Update();
+                                if (updateVal == 0)
+                                {
+                                    if (oCompany.InTransaction)
+                                    {
+                                        oCompany.EndTransaction(BoWfTransOpt.wf_Commit);
+                                    }
+                                    Log.Information($"Updation of incoming payment successfull : {PayUpdate.DocEntry.ToString()}");
+                                }
+                                else
+                                    Log.Error($"Unable to update Incoming Payment : {oCompany.GetLastErrorDescription()}");
+                            }
+                            string status = errorMessage == "" ? "N" : "Y";
+                            string UpdateQuery = $"Update \"ReconCancellations\" set \"Error_desc\"='{errorMessage}' , \"CancellationAvailable\"='{status}' where \"DocEntry\"='{oRecordset.Fields.Item("DocEntry").Value.ToString()}'";
+                            SAPbobsCOM.Recordset oRecordsetUpdate = (SAPbobsCOM.Recordset)oCompany.GetBusinessObject(SAPbobsCOM.BoObjectTypes.BoRecordset);
+                            oRecordsetUpdate.DoQuery(UpdateQuery);
+                        }
+                        catch (Exception e)
+                        {
+                            Log.Error($"Error in Updating Payment and table : {e.Message}");
+                        }
+                    }
+                    oRecordset.MoveNext();
+
+                }
+
+            }
+        }
+        #endregion
 
         #region AutoReconcilation
         public static void AutoPostRecon(SAPbobsCOM.Company oCompany)
@@ -159,7 +239,7 @@ namespace CT_Export
             string query = "";
             if (oCompany.DbServerType == BoDataServerTypes.dst_HANADB)
             {
-                query = "select \r\ntop 1 \r\n\"CardCode\",\r\n\"Balance\"\r\nfrom OCRD where \"Balance\" between -10 and 10 and \"Balance\"!=0 and \"CardType\"='C' and \"CardCode\"='AAIFH2466D'\r\n";
+                query = "select \r\ntop 1 \r\n\"CardCode\",\r\n\"CardType\",\r\n\"Balance\"\r\nfrom OCRD where \"Balance\" between -10 and 10 and \"Balance\"!=0  and \"CardCode\"='AAIFH2466D'\r\n";
             }
             else
             {
@@ -179,7 +259,12 @@ namespace CT_Export
                     {
                         Log.Information($"Auto Adjustment Started for BusinessPartner {oRecordset.Fields.Item("CardCode").Value.ToString()} with the Balance of {oRecordset.Fields.Item("Balance").Value.ToString()}");
                         double balanceAmt = Convert.ToDouble(oRecordset.Fields.Item("Balance").Value.ToString());
-                        SAPbobsCOM.Payments newPay = (SAPbobsCOM.Payments)oCompany.GetBusinessObject(balanceAmt > 0 ? SAPbobsCOM.BoObjectTypes.oIncomingPayments : SAPbobsCOM.BoObjectTypes.oVendorPayments);
+                        SAPbobsCOM.Payments newPay;
+                        if (oRecordset.Fields.Item("CardType").Value.ToString()=="C")
+                            newPay = (SAPbobsCOM.Payments)oCompany.GetBusinessObject(balanceAmt > 0 ? SAPbobsCOM.BoObjectTypes.oIncomingPayments : SAPbobsCOM.BoObjectTypes.oVendorPayments);
+                        else
+                            newPay = (SAPbobsCOM.Payments)oCompany.GetBusinessObject(balanceAmt < 0 ? SAPbobsCOM.BoObjectTypes.oIncomingPayments : SAPbobsCOM.BoObjectTypes.oVendorPayments);
+
                         if (balanceAmt < 0)
                             newPay.Series =551;
                         newPay.CardCode = oRecordset.Fields.Item("CardCode").Value.ToString();

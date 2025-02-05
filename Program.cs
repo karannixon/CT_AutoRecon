@@ -74,7 +74,31 @@ namespace CT_Export
 
             #endregion
 
-            #region Auto Vat Recon
+            #region Auto Cancel Recon
+
+            Log.Information("=================== Auto Cancel of Reconcilation STARTED================");
+
+            try
+            {
+                if (ret == 0)
+                {
+                    GlobalFunctions.AutoCancelRecon(oCompany);
+
+                }
+
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex.Message);
+
+            }
+
+
+            Log.Information("=================== Auto Cancel of Reconcilation ENDED================");
+
+            #endregion
+
+            #region Auto Post Recon
 
             Log.Information("=================== Auto Reconcilation STARTED================");
 
@@ -98,7 +122,7 @@ namespace CT_Export
 
             #endregion
 
-            #region Auto Vat Recon
+            #region Auto Adjust Balance
 
             Log.Information("=================== Auto Balance Adjustment STARTED================");
 
