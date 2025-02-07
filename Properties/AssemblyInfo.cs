@@ -5,11 +5,11 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("ID3PL")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyTitle("CT_AutoRecon")]
+[assembly: AssemblyDescription("Auto Reconciliation and Balance Adjustment")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("ID3PL")]
+[assembly: AssemblyProduct("NDSAUTO")]
 [assembly: AssemblyCopyright("Copyright ©  2023")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]

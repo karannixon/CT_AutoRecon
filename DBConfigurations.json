@@ -1,0 +1,15 @@
+[
+    {
+        "CompanyDB": "TESTDEFMACROINDIA",
+        "DbUserName": "B1ADMIN",
+        "DbPassword": "Netone@1234",
+        "Server": "HANA",
+        "B1Server": "NDB@SAP-HANA-SRV-N:30013",
+        "UserName": "manager",
+        "Password": "Admin@1234",
+        "AutoAdjustMentAccount": "_SYS00000000492",
+        "OutgoingPaymentSeries": 551,
+        "IncomingPaymentSeries": 0,
+        "BranchID": 1
+    }
+]

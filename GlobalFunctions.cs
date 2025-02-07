@@ -22,7 +22,7 @@ using System.Runtime.Remoting.Contexts;
 using Newtonsoft.Json;
 using System.Security.Cryptography;
 
-namespace CT_Export
+namespace CT_AutoRecon
 {
     class GlobalFunctions
     {
@@ -232,7 +232,7 @@ namespace CT_Export
         #endregion
 
         #region AutoBalanceAdjustment
-        public static void AutoBalAdjust(SAPbobsCOM.Company oCompany)
+        public static void AutoBalAdjust(SAPbobsCOM.Company oCompany,DBDetails dBDetails)
         {
 
             SAPbobsCOM.Recordset oRecordset = (SAPbobsCOM.Recordset)oCompany.GetBusinessObject(SAPbobsCOM.BoObjectTypes.BoRecordset);
@@ -265,16 +265,19 @@ namespace CT_Export
                         else
                             newPay = (SAPbobsCOM.Payments)oCompany.GetBusinessObject(balanceAmt < 0 ? SAPbobsCOM.BoObjectTypes.oIncomingPayments : SAPbobsCOM.BoObjectTypes.oVendorPayments);
 
-                        if (balanceAmt < 0)
-                            newPay.Series =551;
+                        if (balanceAmt < 0 && (((oRecordset.Fields.Item("CardType").Value.ToString() == "C") && dBDetails.OutgoingPaymentSeries>0) || ((oRecordset.Fields.Item("CardType").Value.ToString() != "C") && dBDetails.IncomingPaymentSeries > 0)))
+                            newPay.Series = oRecordset.Fields.Item("CardType").Value.ToString() == "C" ? dBDetails.OutgoingPaymentSeries : dBDetails.IncomingPaymentSeries;
+                        else if (balanceAmt > 0 && (((oRecordset.Fields.Item("CardType").Value.ToString() == "C") && dBDetails.IncomingPaymentSeries > 0) || ((oRecordset.Fields.Item("CardType").Value.ToString() != "C") && dBDetails.OutgoingPaymentSeries > 0)))
+                            newPay.Series = oRecordset.Fields.Item("CardType").Value.ToString() == "C" ? dBDetails.IncomingPaymentSeries : dBDetails.OutgoingPaymentSeries;
+
                         newPay.CardCode = oRecordset.Fields.Item("CardCode").Value.ToString();
-                        newPay.BPLID = 1;
-                        newPay.DocDate = new DateTime(2024, 12, 20);
-                        newPay.DueDate = new DateTime(2024, 12, 20); 
-                        newPay.TaxDate = new DateTime(2024, 12, 20); 
+                        newPay.BPLID = dBDetails.BranchID;
+                        newPay.DocDate = DateTime.Now;
+                        newPay.DueDate = DateTime.Now; 
+                        newPay.TaxDate = DateTime.Now; 
                         newPay.DocType = BoRcptTypes.rCustomer;
                         newPay.Remarks = "Auto Adjustment Posting";
-                        newPay.CashAccount = "_SYS00000000492";
+                        newPay.CashAccount =dBDetails.AutoAdjustMentAccount;
                         newPay.CashSum = Convert.ToDouble(oRecordset.Fields.Item("Balance").Value.ToString()) >0 ? Convert.ToDouble(oRecordset.Fields.Item("Balance").Value.ToString()) : Convert.ToDouble(oRecordset.Fields.Item("Balance").Value.ToString()) *(-1);
                         oCompany.StartTransaction();
                         int ret = newPay.Add();
