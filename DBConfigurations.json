@@ -9,7 +9,7 @@
         "Password": "Admin@1234",
         "AutoAdjustMentAccount": "_SYS00000000492",
         "OutgoingPaymentSeries": 551,
-        "IncomingPaymentSeries": 0,
+        "IncomingPaymentSeries": 319,
         "BranchID": 1
     }
 ]

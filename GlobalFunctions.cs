@@ -109,14 +109,14 @@ namespace CT_AutoRecon
         #endregion
 
         #region AutoReconcilation
-        public static void AutoPostRecon(SAPbobsCOM.Company oCompany)
+        public static void AutoPostRecon(SAPbobsCOM.Company oCompany, DBDetails dbData)
         {
 
             SAPbobsCOM.Recordset oRecordset = (SAPbobsCOM.Recordset)oCompany.GetBusinessObject(SAPbobsCOM.BoObjectTypes.BoRecordset);
             string query = "";
             if (oCompany.DbServerType == BoDataServerTypes.dst_HANADB)
             {
-                query = "Select \r\nT0.\"DocEntry\",\r\nT0.\"U_recondata\",\r\nT0.\"DocDate\",\r\nT0.\"DocNum\",\r\nT0.\"DocTotal\",\r\nT0.\"TransId\",\r\nT0.\"CardCode\",\r\n(select \"Line_ID\" from jdt1 where \"TransId\"=T0.\"TransId\" and \"ShortName\"=T0.\"CardCode\") as \"TransRow\"\r\n from ORCT T0 where cast(ifnull(T0.\"U_ext_entry\",'') as varchar(254))='Y' \r\nand cast(T0.\"U_recondata\" as varchar(254)) != ''  \r\nand cast(ifnull(T0.\"U_recon_num\",'') as varchar(254)) = '' and T0.\"DocEntry\"='430636'";
+                query = "Select \r\nT0.\"DocEntry\",\r\nT0.\"U_recondata\",\r\nT0.\"DocDate\",\r\nT0.\"DocNum\",\r\nT0.\"DocTotal\",\r\nT0.\"TransId\",\r\nT0.\"CardCode\",\r\n(select \"Line_ID\" from jdt1 where \"TransId\"=T0.\"TransId\" and \"ShortName\"=T0.\"CardCode\") as \"TransRow\"\r\n from ORCT T0 where cast(ifnull(T0.\"U_ext_entry\",'') as varchar(254))='Y' \r\nand cast(T0.\"U_recondata\" as varchar(254)) != ''  \r\nand cast(ifnull(T0.\"U_recon_num\",'') as varchar(254)) = '' \r\nand cast(ifnull(T0.\"U_recon_error\",'') as varchar(254)) = '' ";
             }
             else
             {
@@ -143,8 +143,8 @@ namespace CT_AutoRecon
                         openTrans.CardOrAccount = CardOrAccountEnum.coaCard;
                         //string docDate = oRecordset.Fields.Item("DocDate").Value.ToString();
                         DateTime docDate = DateTime.Parse(oRecordset.Fields.Item("DocDate").Value.ToString());
-                        openTrans.ReconDate = docDate;
-
+                        openTrans.ReconDate = DateTime.Now;
+                        openTrans.BPLID = dbData.BranchID;
                         openTrans.InternalReconciliationOpenTransRows.Add();
                         openTrans.InternalReconciliationOpenTransRows.Item(0).Selected = BoYesNoEnum.tYES;
 
@@ -154,7 +154,8 @@ namespace CT_AutoRecon
 
                         openTrans.InternalReconciliationOpenTransRows.Item(0).TransRowId = Convert.ToInt32(oRecordset.Fields.Item("TransRow").Value.ToString());
 
-                        openTrans.InternalReconciliationOpenTransRows.Item(0).ReconcileAmount = Convert.ToDouble((oRecordset.Fields.Item("DocTotal").Value.ToString()));
+                        //openTrans.InternalReconciliationOpenTransRows.Item(0).ReconcileAmount = Convert.ToDouble((oRecordset.Fields.Item("DocTotal").Value.ToString()));
+                        openTrans.InternalReconciliationOpenTransRows.Item(0).ReconcileAmount = reconData.Sum(x=>x.AppliedAmt);
 
 
                         SAPbobsCOM.Recordset reconRecordset = (SAPbobsCOM.Recordset)oCompany.GetBusinessObject(SAPbobsCOM.BoObjectTypes.BoRecordset);
@@ -239,7 +240,7 @@ namespace CT_AutoRecon
             string query = "";
             if (oCompany.DbServerType == BoDataServerTypes.dst_HANADB)
             {
-                query = "select \r\ntop 1 \r\n\"CardCode\",\r\n\"CardType\",\r\n\"Balance\"\r\nfrom OCRD where \"Balance\" between -10 and 10 and \"Balance\"!=0  and \"CardCode\"='AAIFH2466D'\r\n";
+                query = "select \r\ntop 1 \r\n\"CardCode\",\r\n\"CardType\",\r\n\"Balance\"\r\nfrom OCRD where \"Balance\" between -10 and 10 and \"Balance\"!=0  \r\n";
             }
             else
             {

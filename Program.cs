@@ -117,7 +117,7 @@ namespace CT_AutoRecon
                             {
                                 if (ret == 0)
                                 {
-                                    GlobalFunctions.AutoPostRecon(oCompany);
+                                    GlobalFunctions.AutoPostRecon(oCompany, dbData);
 
                                 }
 
