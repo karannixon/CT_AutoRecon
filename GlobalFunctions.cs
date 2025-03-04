@@ -155,7 +155,7 @@ namespace CT_AutoRecon
                         openTrans.InternalReconciliationOpenTransRows.Item(0).TransRowId = Convert.ToInt32(oRecordset.Fields.Item("TransRow").Value.ToString());
 
                         //openTrans.InternalReconciliationOpenTransRows.Item(0).ReconcileAmount = Convert.ToDouble((oRecordset.Fields.Item("DocTotal").Value.ToString()));
-                        openTrans.InternalReconciliationOpenTransRows.Item(0).ReconcileAmount = reconData.Sum(x=>x.AppliedAmt);
+                        openTrans.InternalReconciliationOpenTransRows.Item(0).ReconcileAmount = reconData.Sum(x => x.AppliedAmt);
 
 
                         SAPbobsCOM.Recordset reconRecordset = (SAPbobsCOM.Recordset)oCompany.GetBusinessObject(SAPbobsCOM.BoObjectTypes.BoRecordset);
@@ -186,7 +186,7 @@ namespace CT_AutoRecon
                             }
                         }
                         reconciliationParams = service.Add(openTrans);
-                        reconNum=reconciliationParams.ReconNum.ToString();
+                        reconNum = reconciliationParams.ReconNum.ToString();
                         Log.Information($"Reconciliation successfull for the document {oRecordset.Fields.Item("DocEntry").Value.ToString()} internal recon number is {reconNum}");
                         //reconciliationParams.ReconNum = 212773;
                         //service.Cancel(reconciliationParams);
@@ -196,7 +196,8 @@ namespace CT_AutoRecon
                         Log.Error($"Error in Reconciliation {ex.Message}");
                         errorMessage = ex.Message;
                     }
-                    finally {
+                    finally
+                    {
                         SAPbobsCOM.Payments PayUpdate = (SAPbobsCOM.Payments)oCompany.GetBusinessObject(SAPbobsCOM.BoObjectTypes.oIncomingPayments);
                         try
                         {
@@ -204,7 +205,7 @@ namespace CT_AutoRecon
                             {
                                 PayUpdate.UserFields.Fields.Item("U_recon_num").Value = reconNum;
                                 PayUpdate.UserFields.Fields.Item("U_recon_error").Value = errorMessage;
-                               
+
                                 oCompany.StartTransaction();
                                 int updateVal = PayUpdate.Update();
                                 if (updateVal == 0)
@@ -232,8 +233,97 @@ namespace CT_AutoRecon
         }
         #endregion
 
+        #region AutoReconcilation of Accounts with 0 Bal
+        public static void AutoReconCustAcct(SAPbobsCOM.Company oCompany, DBDetails dbData)
+        {
+
+            SAPbobsCOM.Recordset oRecordset = (SAPbobsCOM.Recordset)oCompany.GetBusinessObject(SAPbobsCOM.BoObjectTypes.BoRecordset);
+            string query = "";
+            if (oCompany.DbServerType == BoDataServerTypes.dst_HANADB)
+            {
+                query = "select \"CardCode\" from OCRD where \"Balance\"=0 and \"CardCode\"='AACAC6164G'";
+            }
+            else
+            {
+                query = "select \"CardCode\" from OCRD where \"Balance\"=0";
+
+            }
+
+            oRecordset.DoQuery(query);
+
+            if (oRecordset.RecordCount != 0)
+            {
+
+                for (int i = 0; i < oRecordset.RecordCount; i++)
+                {
+                    SAPbobsCOM.Recordset oRecordsetRecon = (SAPbobsCOM.Recordset)oCompany.GetBusinessObject(SAPbobsCOM.BoObjectTypes.BoRecordset);
+                    string reconDocuments = "";
+                    if (oCompany.DbServerType == BoDataServerTypes.dst_HANADB)
+                    {
+                        reconDocuments = $"select \r\nT0.\"TransId\",\r\nT0.\"Line_ID\" as \"TransRowID\",\r\nT0.\"ShortName\" as \"CardCode\",\r\nT0.\"BalDueDeb\"+T0.\"BalDueCred\" as \"AppliedAmount\"\r\nfrom \"JDT1\" T0 \r\nwhere T0.\"ShortName\"='{oRecordset.Fields.Item("CardCode").Value.ToString()}' and (T0.\"BalDueDeb\"+T0.\"BalDueCred\")>0";
+                    }
+                    else
+                    {
+                        reconDocuments = $"select \r\nT0.\"TransId\",\r\nT0.\"Line_ID\" as \"TransRowID\",\r\nT0.\"ShortName\" as \"CardCode\",\r\nT0.\"BalDueDeb\"+T0.\"BalDueCred\" as \"AppliedAmount\"\r\nfrom \"JDT1\" T0 \r\nwhere T0.\"ShortName\"='{oRecordset.Fields.Item("CardCode").Value.ToString()}' and (T0.\"BalDueDeb\"+T0.\"BalDueCred\")>0";
+
+                    }
+                    oRecordsetRecon.DoQuery(reconDocuments);
+                    if (oRecordsetRecon.RecordCount > 0)
+                    {
+                        string errorMessage = "";
+                        string reconNum = "";
+                        try
+                        {
+                            Log.Information($"Auto Reconciliation of the documents started for Business Partner : {oRecordset.Fields.Item("CardCode").Value.ToString()}");
+                            InternalReconciliationsService service = (InternalReconciliationsService)oCompany.GetCompanyService().GetBusinessService(ServiceTypes.InternalReconciliationsService);
+                            InternalReconciliationOpenTrans openTrans = (InternalReconciliationOpenTrans)service.GetDataInterface(InternalReconciliationsServiceDataInterfaces.irsInternalReconciliationOpenTrans);
+                            InternalReconciliationParams reconciliationParams = (InternalReconciliationParams)service.GetDataInterface(InternalReconciliationsServiceDataInterfaces.irsInternalReconciliationParams);
+                            openTrans.CardOrAccount = CardOrAccountEnum.coaCard;
+                            //string docDate = oRecordset.Fields.Item("DocDate").Value.ToString();
+                            //DateTime docDate = DateTime.Parse(oRecordset.Fields.Item("DocDate").Value.ToString());
+                            openTrans.ReconDate = DateTime.Now;
+                            openTrans.BPLID = dbData.BranchID;
+
+                            for (int j = 0; j < oRecordsetRecon.RecordCount; j++)
+                            {
+                                openTrans.InternalReconciliationOpenTransRows.Add();
+
+                                openTrans.InternalReconciliationOpenTransRows.Item(j).Selected = BoYesNoEnum.tYES;
+
+                                //openTrans.InternalReconciliationOpenTransRows.Item(0). = "AACAC6164G";
+
+                                openTrans.InternalReconciliationOpenTransRows.Item(j).TransId = Convert.ToInt32(oRecordsetRecon.Fields.Item("TransId").Value.ToString());
+
+                                openTrans.InternalReconciliationOpenTransRows.Item(j).TransRowId = Convert.ToInt32(oRecordsetRecon.Fields.Item("TransRowID").Value.ToString());
+
+
+
+                                openTrans.InternalReconciliationOpenTransRows.Item(j).ReconcileAmount = Convert.ToDouble(oRecordsetRecon.Fields.Item("AppliedAmount").Value.ToString());
+                                oRecordsetRecon.MoveNext();
+                            }
+
+                            reconciliationParams = service.Add(openTrans);
+                            reconNum = reconciliationParams.ReconNum.ToString();
+                            Log.Information($"Reconciliation successfull for the Business Partner :{oRecordset.Fields.Item("CardCode").Value.ToString()} with Reconciliation Number : {reconNum}");
+                            //reconciliationParams.ReconNum = 212773;
+                            //service.Cancel(reconciliationParams);
+                        }
+                        catch (Exception ex)
+                        {
+                            Log.Error($"Error in Documentation sReconciliation {ex.Message}");
+                            errorMessage = ex.Message;
+                        }
+                    }
+                    oRecordset.MoveNext();
+
+                }
+
+            }
+        }
+        #endregion
+
         #region AutoBalanceAdjustment
-        public static void AutoBalAdjust(SAPbobsCOM.Company oCompany,DBDetails dBDetails)
+        public static void AutoBalAdjust(SAPbobsCOM.Company oCompany, DBDetails dBDetails)
         {
 
             SAPbobsCOM.Recordset oRecordset = (SAPbobsCOM.Recordset)oCompany.GetBusinessObject(SAPbobsCOM.BoObjectTypes.BoRecordset);
@@ -255,18 +345,18 @@ namespace CT_AutoRecon
                 Log.Information("Records Found for Auto Balance Adjustment!");
                 for (int i = 0; i < oRecordset.RecordCount; i++)
                 {
-                    
+
                     try
                     {
                         Log.Information($"Auto Adjustment Started for BusinessPartner {oRecordset.Fields.Item("CardCode").Value.ToString()} with the Balance of {oRecordset.Fields.Item("Balance").Value.ToString()}");
                         double balanceAmt = Convert.ToDouble(oRecordset.Fields.Item("Balance").Value.ToString());
                         SAPbobsCOM.Payments newPay;
-                        if (oRecordset.Fields.Item("CardType").Value.ToString()=="C")
+                        if (oRecordset.Fields.Item("CardType").Value.ToString() == "C")
                             newPay = (SAPbobsCOM.Payments)oCompany.GetBusinessObject(balanceAmt > 0 ? SAPbobsCOM.BoObjectTypes.oIncomingPayments : SAPbobsCOM.BoObjectTypes.oVendorPayments);
                         else
                             newPay = (SAPbobsCOM.Payments)oCompany.GetBusinessObject(balanceAmt < 0 ? SAPbobsCOM.BoObjectTypes.oIncomingPayments : SAPbobsCOM.BoObjectTypes.oVendorPayments);
 
-                        if (balanceAmt < 0 && (((oRecordset.Fields.Item("CardType").Value.ToString() == "C") && dBDetails.OutgoingPaymentSeries>0) || ((oRecordset.Fields.Item("CardType").Value.ToString() != "C") && dBDetails.IncomingPaymentSeries > 0)))
+                        if (balanceAmt < 0 && (((oRecordset.Fields.Item("CardType").Value.ToString() == "C") && dBDetails.OutgoingPaymentSeries > 0) || ((oRecordset.Fields.Item("CardType").Value.ToString() != "C") && dBDetails.IncomingPaymentSeries > 0)))
                             newPay.Series = oRecordset.Fields.Item("CardType").Value.ToString() == "C" ? dBDetails.OutgoingPaymentSeries : dBDetails.IncomingPaymentSeries;
                         else if (balanceAmt > 0 && (((oRecordset.Fields.Item("CardType").Value.ToString() == "C") && dBDetails.IncomingPaymentSeries > 0) || ((oRecordset.Fields.Item("CardType").Value.ToString() != "C") && dBDetails.OutgoingPaymentSeries > 0)))
                             newPay.Series = oRecordset.Fields.Item("CardType").Value.ToString() == "C" ? dBDetails.IncomingPaymentSeries : dBDetails.OutgoingPaymentSeries;
@@ -274,12 +364,13 @@ namespace CT_AutoRecon
                         newPay.CardCode = oRecordset.Fields.Item("CardCode").Value.ToString();
                         newPay.BPLID = dBDetails.BranchID;
                         newPay.DocDate = DateTime.Now;
-                        newPay.DueDate = DateTime.Now; 
-                        newPay.TaxDate = DateTime.Now; 
-                        newPay.DocType = BoRcptTypes.rCustomer;
+                        newPay.DueDate = DateTime.Now;
+                        newPay.TaxDate = DateTime.Now;
+                        //newPay.DocType = BoRcptTypes.rCustomer;
+                        newPay.DocType = (oRecordset.Fields.Item("CardType").Value.ToString() == "C") ? BoRcptTypes.rCustomer : BoRcptTypes.rSupplier;
                         newPay.Remarks = "Auto Adjustment Posting";
-                        newPay.CashAccount =dBDetails.AutoAdjustMentAccount;
-                        newPay.CashSum = Convert.ToDouble(oRecordset.Fields.Item("Balance").Value.ToString()) >0 ? Convert.ToDouble(oRecordset.Fields.Item("Balance").Value.ToString()) : Convert.ToDouble(oRecordset.Fields.Item("Balance").Value.ToString()) *(-1);
+                        newPay.CashAccount = dBDetails.AutoAdjustMentAccount;
+                        newPay.CashSum = Convert.ToDouble(oRecordset.Fields.Item("Balance").Value.ToString()) > 0 ? Convert.ToDouble(oRecordset.Fields.Item("Balance").Value.ToString()) : Convert.ToDouble(oRecordset.Fields.Item("Balance").Value.ToString()) * (-1);
                         oCompany.StartTransaction();
                         int ret = newPay.Add();
                         if (ret == 0)

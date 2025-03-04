@@ -157,6 +157,30 @@ namespace CT_AutoRecon
 
                             #endregion
 
+                            #region Auto Documents Reconcile
+
+                            Log.Information("=================== Auto Document Reconciliation STARTED================");
+
+                            try
+                            {
+                                if (ret == 0)
+                                {
+                                    GlobalFunctions.AutoReconCustAcct(oCompany, dbData);
+
+                                }
+
+                            }
+                            catch (Exception ex)
+                            {
+                                Log.Error(ex.Message);
+
+                            }
+
+
+                            Log.Information("=================== Auto Document Reconciliation ENDED================");
+
+                            #endregion
+
                             Log.Information($"Sync Ended for the database : {dbData.CompanyDB} !!");
                         }
                     }
