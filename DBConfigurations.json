@@ -11,5 +11,70 @@
         "OutgoingPaymentSeries": 551,
         "IncomingPaymentSeries": 319,
         "BranchID": 1
+    },
+    {
+        "CompanyDB": "DEFMACROFINAL",
+        "DbUserName": "B1ADMIN",
+        "DbPassword": "Netone@1234",
+        "Server": "HANA",
+        "B1Server": "NDB@SAP-HANA-SRV-N:30013",
+        "UserName": "manager",
+        "Password": "Admin@1234",
+        "AutoAdjustMentAccount": "_SYS00000000492",
+        "OutgoingPaymentSeries": 565,
+        "IncomingPaymentSeries": 319,
+        "BranchID": 1
+    },
+    {
+        "CompanyDB": "DEFMACROMALYFINAL",
+        "DbUserName": "B1ADMIN",
+        "DbPassword": "Netone@1234",
+        "Server": "HANA",
+        "B1Server": "NDB@SAP-HANA-SRV-N:30013",
+        "UserName": "manager",
+        "Password": "Admin@1234",
+        "AutoAdjustMentAccount": "_SYS00000000232",
+        "OutgoingPaymentSeries": 91,
+        "IncomingPaymentSeries": 21,
+        "BranchID": 1
+    },
+    {
+        "CompanyDB": "DEFMACROUAEFINAL",
+        "DbUserName": "B1ADMIN",
+        "DbPassword": "Netone@1234",
+        "Server": "HANA",
+        "B1Server": "NDB@SAP-HANA-SRV-N:30013",
+        "UserName": "manager",
+        "Password": "Admin@1234",
+        "AutoAdjustMentAccount": "_SYS00000000232",
+        "OutgoingPaymentSeries": 95,
+        "IncomingPaymentSeries": 21,
+        "BranchID": 1
+    },
+    {
+        "CompanyDB": "XPEDIZEFINAL",
+        "DbUserName": "B1ADMIN",
+        "DbPassword": "Netone@1234",
+        "Server": "HANA",
+        "B1Server": "NDB@SAP-HANA-SRV-N:30013",
+        "UserName": "manager",
+        "Password": "Admin@1234",
+        "AutoAdjustMentAccount": "_SYS00000001150",
+        "OutgoingPaymentSeries": 167,
+        "IncomingPaymentSeries": 166,
+        "BranchID": 1
+    },
+    {
+        "CompanyDB": "CIMPLYFIVEFINAL",
+        "DbUserName": "B1ADMIN",
+        "DbPassword": "Netone@1234",
+        "Server": "HANA",
+        "B1Server": "NDB@SAP-HANA-SRV-N:30013",
+        "UserName": "manager",
+        "Password": "Admin@1234",
+        "AutoAdjustMentAccount": "_SYS00000000911",
+        "OutgoingPaymentSeries": 132,
+        "IncomingPaymentSeries": 131,
+        "BranchID": 1
     }
 ]
