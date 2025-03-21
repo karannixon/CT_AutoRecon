@@ -144,7 +144,7 @@ namespace CT_AutoRecon
                         //string docDate = oRecordset.Fields.Item("DocDate").Value.ToString();
                         DateTime docDate = DateTime.Parse(oRecordset.Fields.Item("DocDate").Value.ToString());
                         DateTime nextMonth = docDate.AddMonths(1);
-                        DateTime comparedDate = new DateTime(docDate.Year, nextMonth.Month, 7);
+                        DateTime comparedDate = new DateTime(nextMonth.Year, nextMonth.Month, 7);
                         openTrans.ReconDate = DateTime.Now >= comparedDate ? DateTime.Now : docDate;
                         openTrans.BPLID = dbData.BranchID;
                         openTrans.InternalReconciliationOpenTransRows.Add();
