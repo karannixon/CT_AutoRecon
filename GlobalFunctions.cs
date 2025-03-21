@@ -116,7 +116,7 @@ namespace CT_AutoRecon
             string query = "";
             if (oCompany.DbServerType == BoDataServerTypes.dst_HANADB)
             {
-                query = "Select \r\nT0.\"DocEntry\",\r\nT0.\"U_recondata\",\r\nT0.\"DocDate\",\r\nT0.\"DocNum\",\r\nT0.\"DocTotal\",\r\nT0.\"TransId\",\r\nT0.\"CardCode\",\r\n(select \"Line_ID\" from jdt1 where \"TransId\"=T0.\"TransId\" and \"ShortName\"=T0.\"CardCode\") as \"TransRow\"\r\n from ORCT T0 where cast(ifnull(T0.\"U_ext_entry\",'') as varchar(254))='Y' \r\nand cast(T0.\"U_recondata\" as varchar(254)) != ''  \r\nand cast(ifnull(T0.\"U_recon_num\",'') as varchar(254)) = '' \r\nand cast(ifnull(T0.\"U_recon_error\",'') as varchar(254)) = '' ";
+                query = "Select \r\nT0.\"DocEntry\",\r\nT0.\"U_recondata\",\r\nT0.\"DocDate\",\r\nT0.\"DocNum\",\r\nT0.\"DocTotal\",\r\nT0.\"TransId\",\r\nT0.\"CardCode\",\r\n(select \"Line_ID\" from jdt1 where \"TransId\"=T0.\"TransId\" and \"ShortName\"=T0.\"CardCode\") as \"TransRow\"\r\n from ORCT T0 where T0.\"Canceled\"='N' and cast(ifnull(T0.\"U_ext_entry\",'') as varchar(254))='Y' \r\nand cast(T0.\"U_recondata\" as varchar(254)) != ''  \r\nand cast(ifnull(T0.\"U_recon_num\",'') as varchar(254)) = '' \r\nand cast(ifnull(T0.\"U_recon_error\",'') as varchar(254)) = '' ";
             }
             else
             {
@@ -143,7 +143,9 @@ namespace CT_AutoRecon
                         openTrans.CardOrAccount = CardOrAccountEnum.coaCard;
                         //string docDate = oRecordset.Fields.Item("DocDate").Value.ToString();
                         DateTime docDate = DateTime.Parse(oRecordset.Fields.Item("DocDate").Value.ToString());
-                        openTrans.ReconDate = DateTime.Now;
+                        DateTime nextMonth = docDate.AddMonths(1);
+                        DateTime comparedDate = new DateTime(docDate.Year, docDate.Month, 7);
+                        openTrans.ReconDate = DateTime.Now >= comparedDate ? DateTime.Now : docDate;
                         openTrans.BPLID = dbData.BranchID;
                         openTrans.InternalReconciliationOpenTransRows.Add();
                         openTrans.InternalReconciliationOpenTransRows.Item(0).Selected = BoYesNoEnum.tYES;
@@ -241,7 +243,7 @@ namespace CT_AutoRecon
             string query = "";
             if (oCompany.DbServerType == BoDataServerTypes.dst_HANADB)
             {
-                query = "select \"CardCode\" from OCRD where \"Balance\"=0 and \"CardCode\"='AACAC6164G'";
+                query = "select \"CardCode\" from OCRD T0 where T0.\"Balance\"=0 and (select count(*) from JDT1 TX where TX.\"ShortName\"=T0.\"CardCode\" and (TX.\"BalDueDeb\"+TX.\"BalDueCred\")!=0) !=0 ;\r\n";
             }
             else
             {
@@ -260,11 +262,11 @@ namespace CT_AutoRecon
                     string reconDocuments = "";
                     if (oCompany.DbServerType == BoDataServerTypes.dst_HANADB)
                     {
-                        reconDocuments = $"select \r\nT0.\"TransId\",\r\nT0.\"Line_ID\" as \"TransRowID\",\r\nT0.\"ShortName\" as \"CardCode\",\r\nT0.\"BalDueDeb\"+T0.\"BalDueCred\" as \"AppliedAmount\"\r\nfrom \"JDT1\" T0 \r\nwhere T0.\"ShortName\"='{oRecordset.Fields.Item("CardCode").Value.ToString()}' and (T0.\"BalDueDeb\"+T0.\"BalDueCred\")>0";
+                        reconDocuments = $"select \r\nT0.\"TransId\",\r\nT0.\"Line_ID\" as \"TransRowID\",\r\nT0.\"ShortName\" as \"CardCode\",\r\nT0.\"BalDueDeb\"+T0.\"BalDueCred\" as \"AppliedAmount\"\r\nfrom \"JDT1\" T0 \r\nwhere T0.\"ShortName\"='{oRecordset.Fields.Item("CardCode").Value.ToString()}' and (T0.\"BalDueDeb\"+T0.\"BalDueCred\")!=0";
                     }
                     else
                     {
-                        reconDocuments = $"select \r\nT0.\"TransId\",\r\nT0.\"Line_ID\" as \"TransRowID\",\r\nT0.\"ShortName\" as \"CardCode\",\r\nT0.\"BalDueDeb\"+T0.\"BalDueCred\" as \"AppliedAmount\"\r\nfrom \"JDT1\" T0 \r\nwhere T0.\"ShortName\"='{oRecordset.Fields.Item("CardCode").Value.ToString()}' and (T0.\"BalDueDeb\"+T0.\"BalDueCred\")>0";
+                        reconDocuments = $"select \r\nT0.\"TransId\",\r\nT0.\"Line_ID\" as \"TransRowID\",\r\nT0.\"ShortName\" as \"CardCode\",\r\nT0.\"BalDueDeb\"+T0.\"BalDueCred\" as \"AppliedAmount\"\r\nfrom \"JDT1\" T0 \r\nwhere T0.\"ShortName\"='{oRecordset.Fields.Item("CardCode").Value.ToString()}' and (T0.\"BalDueDeb\"+T0.\"BalDueCred\")!=0";
 
                     }
                     oRecordsetRecon.DoQuery(reconDocuments);
@@ -330,7 +332,7 @@ namespace CT_AutoRecon
             string query = "";
             if (oCompany.DbServerType == BoDataServerTypes.dst_HANADB)
             {
-                query = "select \r\ntop 1 \r\n\"CardCode\",\r\n\"CardType\",\r\n\"Balance\"\r\nfrom OCRD where \"Balance\" between -10 and 10 and \"Balance\"!=0  \r\n";
+                query = "select \r\n \r\n\"CardCode\",\r\n\"CardType\",\r\n\"Balance\"\r\nfrom OCRD where \"Balance\" between -10 and 10 and \"Balance\"!=0  \r\n";
             }
             else
             {
@@ -354,12 +356,12 @@ namespace CT_AutoRecon
                         if (oRecordset.Fields.Item("CardType").Value.ToString() == "C")
                             newPay = (SAPbobsCOM.Payments)oCompany.GetBusinessObject(balanceAmt > 0 ? SAPbobsCOM.BoObjectTypes.oIncomingPayments : SAPbobsCOM.BoObjectTypes.oVendorPayments);
                         else
-                            newPay = (SAPbobsCOM.Payments)oCompany.GetBusinessObject(balanceAmt < 0 ? SAPbobsCOM.BoObjectTypes.oIncomingPayments : SAPbobsCOM.BoObjectTypes.oVendorPayments);
+                            newPay = (SAPbobsCOM.Payments)oCompany.GetBusinessObject(balanceAmt > 0 ? SAPbobsCOM.BoObjectTypes.oIncomingPayments : SAPbobsCOM.BoObjectTypes.oVendorPayments);
 
-                        if (balanceAmt < 0 && (((oRecordset.Fields.Item("CardType").Value.ToString() == "C") && dBDetails.OutgoingPaymentSeries > 0) || ((oRecordset.Fields.Item("CardType").Value.ToString() != "C") && dBDetails.IncomingPaymentSeries > 0)))
-                            newPay.Series = oRecordset.Fields.Item("CardType").Value.ToString() == "C" ? dBDetails.OutgoingPaymentSeries : dBDetails.IncomingPaymentSeries;
-                        else if (balanceAmt > 0 && (((oRecordset.Fields.Item("CardType").Value.ToString() == "C") && dBDetails.IncomingPaymentSeries > 0) || ((oRecordset.Fields.Item("CardType").Value.ToString() != "C") && dBDetails.OutgoingPaymentSeries > 0)))
-                            newPay.Series = oRecordset.Fields.Item("CardType").Value.ToString() == "C" ? dBDetails.IncomingPaymentSeries : dBDetails.OutgoingPaymentSeries;
+                        if (balanceAmt < 0 && dBDetails.OutgoingPaymentSeries > 0)
+                            newPay.Series = dBDetails.OutgoingPaymentSeries ;
+                        else if (balanceAmt > 0 && dBDetails.IncomingPaymentSeries > 0)
+                            newPay.Series =  dBDetails.IncomingPaymentSeries ;
 
                         newPay.CardCode = oRecordset.Fields.Item("CardCode").Value.ToString();
                         newPay.BPLID = dBDetails.BranchID;
